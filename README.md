@@ -1,89 +1,109 @@
 # WiFi CSI HAR LSTM
 
-PyTorch LSTM model for WiFi CSI Human Activity Recognition.
-
-This repository contains a trained `.pth` model file and a minimal inference example so other users can download the model and load it in their own PyTorch projects.
+Ready-to-use PyTorch LSTM model for WiFi CSI Human Activity Recognition.
 
 ## Files
 
 ```text
 wifi-csi-har-lstm/
-├── README.md
-├── requirements.txt
-├── inference.py
-└── simple_lstm_best.pth
+|-- inference.py
+|-- labels.json
+|-- model_config.json
+|-- requirements.txt
+|-- simple_lstm_best.pth
+`-- upload_to_hf.py
 ```
 
-## Model Details
+## Model Contract
 
-- Task: WiFi CSI Human Activity Recognition
-- Model type: PyTorch LSTM
 - Model file: `simple_lstm_best.pth`
-- Format: `.pth`
-- Note: The file may contain either a full PyTorch model or a `state_dict`.
+- Architecture: 2-layer LSTM + `hidden2label` classifier
+- Input tensor shape: `(batch, 1024, 468)`
+- Single-sample input shape also accepted: `(1024, 468)`
+- Output classes:
+  - `standing`
+  - `walking`
+  - `get_down`
+  - `sitting`
+  - `get_up`
+  - `lying`
+  - `no_person`
 
-## Installation
+## Backend Usage
 
-Clone this repository and install dependencies:
+Install dependencies:
 
 ```bash
-git clone https://huggingface.co/YOUR_USERNAME/wifi-csi-har-lstm
-cd wifi-csi-har-lstm
 pip install -r requirements.txt
 ```
 
-Replace `YOUR_USERNAME` with your Hugging Face username.
-
-## Inference
-
-Run:
-
-```bash
-python inference.py --model_path simple_lstm_best.pth
-```
-
-Important: If `simple_lstm_best.pth` is a `state_dict`, you must edit the placeholder model configuration in `inference.py` so it matches the values used during training:
-
-- `input_size`
-- `hidden_size`
-- `num_layers`
-- `num_classes`
-
-You may also need to adjust the input preprocessing so it matches your WiFi CSI training pipeline.
-
-## Example Usage
+Use the cached predictor in backend code so the model is loaded only once:
 
 ```python
-import torch
-from inference import SimpleLSTM, load_model
+from inference import get_predictor
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+predictor = get_predictor()
 
-model = load_model(
-    model_path="simple_lstm_best.pth",
-    input_size=128,      # TODO: change to your training value
-    hidden_size=64,      # TODO: change to your training value
-    num_layers=2,        # TODO: change to your training value
-    num_classes=6,       # TODO: change to your training value
-    device=device,
-)
-
-model.eval()
-
-# Example input shape: (batch_size, sequence_length, input_size)
-x = torch.randn(1, 100, 128).to(device)
-
-with torch.no_grad():
-    logits = model(x)
-    prediction = torch.argmax(logits, dim=1)
-
-print(prediction.item())
+def classify_csi(csi_array):
+    # csi_array can be a Python list, NumPy array, or torch.Tensor.
+    # Accepted shapes: (1024, 468) or (batch, 1024, 468).
+    return predictor.predict(csi_array)
 ```
 
-## Uploading to Hugging Face
+Example response:
 
-See the deployment steps below if you are preparing this repository locally.
+```json
+{
+  "predictions": [
+    {
+      "class_index": 0,
+      "label": "standing",
+      "confidence": 0.98,
+      "probabilities": {
+        "standing": 0.98,
+        "walking": 0.01,
+        "get_down": 0.0,
+        "sitting": 0.0,
+        "get_up": 0.0,
+        "lying": 0.0,
+        "no_person": 0.01
+      }
+    }
+  ]
+}
+```
 
-## License
+## FastAPI Example
 
-Add your preferred license here before publishing, for example MIT, Apache-2.0, or another license suitable for your dataset/model.
+```python
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+from inference import get_predictor
+
+app = FastAPI()
+predictor = get_predictor()
+
+
+class PredictRequest(BaseModel):
+    csi: list
+
+
+@app.post("/predict")
+def predict(request: PredictRequest):
+    return predictor.predict(request.csi)
+```
+
+## CLI Test
+
+Run with a zero-filled sample to verify the model can load:
+
+```bash
+python inference.py
+```
+
+Run with JSON input:
+
+```bash
+python inference.py --input_json sample.json
+```

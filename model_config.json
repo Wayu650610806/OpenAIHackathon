@@ -1,0 +1,26 @@
+{
+  "model_name": "simple_lstm",
+  "model_file": "simple_lstm_best.pth",
+  "task": "wifi_csi_human_activity_recognition",
+  "input_shape": {
+    "batch": null,
+    "sequence_length": 1024,
+    "input_dim": 468
+  },
+  "architecture": {
+    "type": "LSTM",
+    "hidden_size": 256,
+    "num_layers": 2,
+    "batch_first": true,
+    "classifier_layer": "hidden2label"
+  },
+  "classes": [
+    "standing",
+    "walking",
+    "get_down",
+    "sitting",
+    "get_up",
+    "lying",
+    "no_person"
+  ]
+}

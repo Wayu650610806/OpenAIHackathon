@@ -1,0 +1,9 @@
+{
+  "0": "standing",
+  "1": "walking",
+  "2": "get_down",
+  "3": "sitting",
+  "4": "get_up",
+  "5": "lying",
+  "6": "no_person"
+}
