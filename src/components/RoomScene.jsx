@@ -1,188 +1,353 @@
-import { motion, AnimatePresence } from 'framer-motion'
-
-// ─── Pose definitions (SVG coordinate space 200×260) ─────────────────────────
-// Each pose is: head {cx,cy}, body {x1,y1,x2,y2}, lArm, rArm, lLeg, rLeg
-const POSES = {
-  no_person: null,
-  standing: {
-    head: { cx: 100, cy: 60 },
-    body: { x1: 100, y1: 75,  x2: 100, y2: 145 },
-    lArm: { x1: 100, y1: 90,  x2: 75,  y2: 120 },
-    rArm: { x1: 100, y1: 90,  x2: 125, y2: 120 },
-    lLeg: { x1: 100, y1: 145, x2: 82,  y2: 195 },
-    rLeg: { x1: 100, y1: 145, x2: 118, y2: 195 },
-  },
-  walking: {
-    head: { cx: 100, cy: 58 },
-    body: { x1: 100, y1: 73,  x2: 102, y2: 143 },
-    lArm: { x1: 100, y1: 88,  x2: 120, y2: 118 },
-    rArm: { x1: 100, y1: 88,  x2: 80,  y2: 115 },
-    lLeg: { x1: 102, y1: 143, x2: 78,  y2: 195 },
-    rLeg: { x1: 102, y1: 143, x2: 122, y2: 192 },
-  },
-  sitting: {
-    head: { cx: 100, cy: 68 },
-    body: { x1: 100, y1: 83,  x2: 100, y2: 140 },
-    lArm: { x1: 100, y1: 98,  x2: 74,  y2: 122 },
-    rArm: { x1: 100, y1: 98,  x2: 126, y2: 122 },
-    lLeg: { x1: 100, y1: 140, x2: 68,  y2: 140 },
-    rLeg: { x1: 100, y1: 140, x2: 132, y2: 140 },
-  },
-  lying: {
-    head: { cx: 52, cy: 178 },
-    body: { x1: 66,  y1: 178, x2: 148, y2: 178 },
-    lArm: { x1: 95,  y1: 178, x2: 78,  y2: 163 },
-    rArm: { x1: 95,  y1: 178, x2: 112, y2: 163 },
-    lLeg: { x1: 148, y1: 178, x2: 168, y2: 168 },
-    rLeg: { x1: 148, y1: 178, x2: 168, y2: 188 },
-  },
-  get_up: {
-    head: { cx: 84, cy: 105 },
-    body: { x1: 92,  y1: 118, x2: 112, y2: 165 },
-    lArm: { x1: 98,  y1: 132, x2: 68,  y2: 148 },
-    rArm: { x1: 98,  y1: 132, x2: 122, y2: 118 },
-    lLeg: { x1: 112, y1: 165, x2: 90,  y2: 200 },
-    rLeg: { x1: 112, y1: 165, x2: 140, y2: 192 },
-  },
-  get_down: {
-    head: { cx: 60, cy: 192 },
-    body: { x1: 74,  y1: 195, x2: 142, y2: 185 },
-    lArm: { x1: 95,  y1: 192, x2: 72,  y2: 175 },
-    rArm: { x1: 95,  y1: 192, x2: 115, y2: 172 },
-    lLeg: { x1: 142, y1: 185, x2: 162, y2: 174 },
-    rLeg: { x1: 142, y1: 185, x2: 158, y2: 196 },
-  },
-}
+import { useEffect, useRef } from 'react'
+import * as THREE from 'three'
 
 const STATE_COLORS = {
   no_person: '#94A3B8',
-  standing:  '#F59E0B',
-  walking:   '#10B981',
-  sitting:   '#8B5CF6',
-  lying:     '#3B82F6',
-  get_up:    '#F97316',
-  get_down:  '#EF4444',
+  standing: '#F59E0B',
+  walking: '#10B981',
+  sitting: '#8B5CF6',
+  lying: '#3B82F6',
+  get_up: '#F97316',
+  get_down: '#EF4444',
 }
 
-function Figure({ pose, color, isFall }) {
-  if (!pose) return null
-  return (
-    <g>
-      {/* Shadow */}
-      <ellipse cx="100" cy="215" rx="28" ry="6" fill="rgba(0,0,0,0.12)" />
-      {/* Legs */}
-      <motion.line
-        x1={pose.lLeg.x1} y1={pose.lLeg.y1} x2={pose.lLeg.x2} y2={pose.lLeg.y2}
-        stroke={color} strokeWidth="7" strokeLinecap="round"
-        animate={{ x1: pose.lLeg.x1, y1: pose.lLeg.y1, x2: pose.lLeg.x2, y2: pose.lLeg.y2 }}
-        transition={{ duration: 0.45, ease: 'easeInOut' }}
-      />
-      <motion.line
-        x1={pose.rLeg.x1} y1={pose.rLeg.y1} x2={pose.rLeg.x2} y2={pose.rLeg.y2}
-        stroke={color} strokeWidth="7" strokeLinecap="round"
-        animate={{ x1: pose.rLeg.x1, y1: pose.rLeg.y1, x2: pose.rLeg.x2, y2: pose.rLeg.y2 }}
-        transition={{ duration: 0.45, ease: 'easeInOut' }}
-      />
-      {/* Body */}
-      <motion.line
-        x1={pose.body.x1} y1={pose.body.y1} x2={pose.body.x2} y2={pose.body.y2}
-        stroke={color} strokeWidth="8" strokeLinecap="round"
-        animate={{ x1: pose.body.x1, y1: pose.body.y1, x2: pose.body.x2, y2: pose.body.y2 }}
-        transition={{ duration: 0.45, ease: 'easeInOut' }}
-      />
-      {/* Arms */}
-      <motion.line
-        x1={pose.lArm.x1} y1={pose.lArm.y1} x2={pose.lArm.x2} y2={pose.lArm.y2}
-        stroke={color} strokeWidth="6" strokeLinecap="round"
-        animate={{ x1: pose.lArm.x1, y1: pose.lArm.y1, x2: pose.lArm.x2, y2: pose.lArm.y2 }}
-        transition={{ duration: 0.45, ease: 'easeInOut' }}
-      />
-      <motion.line
-        x1={pose.rArm.x1} y1={pose.rArm.y1} x2={pose.rArm.x2} y2={pose.rArm.y2}
-        stroke={color} strokeWidth="6" strokeLinecap="round"
-        animate={{ x1: pose.rArm.x1, y1: pose.rArm.y1, x2: pose.rArm.x2, y2: pose.rArm.y2 }}
-        transition={{ duration: 0.45, ease: 'easeInOut' }}
-      />
-      {/* Head */}
-      <motion.circle
-        cx={pose.head.cx} cy={pose.head.cy} r={14}
-        fill={isFall ? '#FEF2F2' : '#FFF7ED'} stroke={color} strokeWidth="4"
-        animate={{ cx: pose.head.cx, cy: pose.head.cy }}
-        transition={{ duration: 0.45, ease: 'easeInOut' }}
-      />
-      {/* Walking legs animation */}
-    </g>
-  )
+const POSES = {
+  standing: {
+    root: [0, 0.05, 0], body: [0, 0, 0], torso: [0, 0, 0],
+    head: [0, 0, 0], leftArm: [0, 0, -0.45], rightArm: [0, 0, 0.45],
+    leftLeg: [0.08, 0, -0.12], rightLeg: [-0.08, 0, 0.12],
+  },
+  walking: {
+    root: [0, 0.06, 0], body: [0, 0, 0], torso: [0.08, 0, 0.08],
+    head: [0.03, 0, 0], leftArm: [0.32, 0, -0.32], rightArm: [-0.32, 0, 0.32],
+    leftLeg: [-0.12, 0, -0.04], rightLeg: [0.12, 0, 0.04],
+  },
+  sitting: {
+    root: [0, -0.1, 0.08], body: [-0.12, 0, 0], torso: [-0.1, 0, 0],
+    head: [-0.06, 0, 0], leftArm: [0.2, 0, -0.55], rightArm: [0.2, 0, 0.55],
+    leftLeg: [1.22, 0, -0.04], rightLeg: [1.22, 0, 0.04],
+  },
+  lying: {
+    root: [1.0, 0.62, 0], body: [0, 0, Math.PI / 2], torso: [0, 0, 0],
+    head: [0, 0, 0], leftArm: [0, 0, -0.08], rightArm: [0, 0, 0.08],
+    leftLeg: [0.15, 0, -0.08], rightLeg: [-0.15, 0, 0.08],
+  },
+  get_up: {
+    root: [0.0, -0.02, 0.56], body: [-0.58, 0, 0], torso: [-0.34, 0, 0],
+    head: [-0.18, 0, 0], leftArm: [0.85, 0, -0.75], rightArm: [0.4, 0, 0.5],
+    leftLeg: [0.86, 0, -0.08], rightLeg: [0.36, 0, 0.08],
+  },
+  get_down: {
+    root: [-0.9, 0.12, 0.78], body: [0.1, 0, Math.PI / 2.55], torso: [0.1, 0, 0],
+    head: [0.1, 0, 0], leftArm: [0.75, 0, -1.0], rightArm: [0.65, 0, 0.9],
+    leftLeg: [0.35, 0, -0.3], rightLeg: [-0.3, 0, 0.25],
+  },
+}
+
+function makeMaterial(color, roughness = 0.65) {
+  return new THREE.MeshStandardMaterial({ color, roughness, metalness: 0.03 })
+}
+
+function roundedBox(w, h, d, color) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), makeMaterial(color))
+  mesh.castShadow = true
+  mesh.receiveShadow = true
+  return mesh
+}
+
+function limb(length, radius, color) {
+  const group = new THREE.Group()
+  const mesh = new THREE.Mesh(new THREE.CapsuleGeometry(radius, length, 8, 16), makeMaterial(color))
+  mesh.position.y = -length / 2
+  mesh.castShadow = true
+  group.add(mesh)
+  return group
+}
+
+function createAvatar() {
+  const avatar = new THREE.Group()
+  const body = new THREE.Group()
+  avatar.add(body)
+
+  const shirt = makeMaterial('#60A5FA')
+  const pants = makeMaterial('#475569')
+  const skin = makeMaterial('#FCD34D')
+  const hair = makeMaterial('#D1D5DB')
+
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.28, 0.58, 8, 24), shirt)
+  torso.position.y = 1.22
+  torso.castShadow = true
+  body.add(torso)
+
+  const neck = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.08, 6, 12), skin)
+  neck.position.y = 1.68
+  neck.castShadow = true
+  body.add(neck)
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.23, 32, 24), skin)
+  head.position.y = 1.92
+  head.castShadow = true
+  body.add(head)
+
+  const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.235, 32, 12, 0, Math.PI * 2, 0, Math.PI / 2), hair)
+  hairCap.position.y = 2.02
+  hairCap.scale.set(1, 0.55, 1)
+  hairCap.castShadow = true
+  body.add(hairCap)
+
+  const leftArm = limb(0.66, 0.055, '#FCD34D')
+  const rightArm = limb(0.66, 0.055, '#FCD34D')
+  leftArm.position.set(-0.34, 1.44, 0)
+  rightArm.position.set(0.34, 1.44, 0)
+  body.add(leftArm, rightArm)
+
+  const leftLeg = limb(0.84, 0.075, '#475569')
+  const rightLeg = limb(0.84, 0.075, '#475569')
+  leftLeg.position.set(-0.13, 0.82, 0)
+  rightLeg.position.set(0.13, 0.82, 0)
+  body.add(leftLeg, rightLeg)
+
+  const leftShoe = roundedBox(0.18, 0.08, 0.28, '#1F2937')
+  const rightShoe = roundedBox(0.18, 0.08, 0.28, '#1F2937')
+  leftShoe.position.set(0, -0.86, 0.08)
+  rightShoe.position.set(0, -0.86, 0.08)
+  leftLeg.add(leftShoe)
+  rightLeg.add(rightShoe)
+
+  return { avatar, body, torso, head, leftArm, rightArm, leftLeg, rightLeg, leftShoe, rightShoe }
+}
+
+function createFurniture() {
+  const chair = new THREE.Group()
+  chair.name = 'chair'
+  const seat = roundedBox(1.0, 0.1, 0.72, '#CBD5E1')
+  seat.position.set(0, 0.46, 0)
+  const back = roundedBox(1.0, 0.86, 0.1, '#94A3B8')
+  back.position.set(0, 0.86, -0.36)
+  chair.add(seat, back)
+  ;[-0.36, 0.36].forEach(z => {
+    ;[-0.38, 0.38].forEach(x => {
+      const leg = roundedBox(0.08, 0.5, 0.08, '#64748B')
+      leg.position.set(x, 0.22, z)
+      chair.add(leg)
+    })
+  })
+  chair.position.set(0, 0, 0)
+
+  const bed = new THREE.Group()
+  bed.name = 'bed'
+  const mattress = roundedBox(2.25, 0.24, 0.92, '#CBD5E1')
+  mattress.position.set(-0.08, 0.31, 0)
+  const pillow = roundedBox(0.48, 0.18, 0.78, '#E2E8F0')
+  pillow.position.set(-0.9, 0.56, 0)
+  bed.add(mattress, pillow)
+
+  return { chair, bed }
+}
+
+function applyPose(rig, pose) {
+  rig.avatar.position.set(...pose.root)
+  rig.body.rotation.set(...pose.body)
+  rig.torso.rotation.set(...pose.torso)
+  rig.head.rotation.set(...pose.head)
+  rig.leftArm.rotation.set(...pose.leftArm)
+  rig.rightArm.rotation.set(...pose.rightArm)
+  rig.leftLeg.rotation.set(...pose.leftLeg)
+  rig.rightLeg.rotation.set(...pose.rightLeg)
+  rig.leftShoe.visible = true
+  rig.rightShoe.visible = true
 }
 
 export default function RoomScene({ state = 'standing', isFall = false }) {
-  const pose  = POSES[state]
-  const color = STATE_COLORS[state] ?? '#94A3B8'
+  const hostRef = useRef(null)
+  const sceneRef = useRef(null)
+  const stateRef = useRef(state)
+  const fallRef = useRef(isFall)
+
+  useEffect(() => {
+    stateRef.current = state
+    fallRef.current = isFall
+  }, [state, isFall])
+
+  useEffect(() => {
+    const host = hostRef.current
+    if (!host) return undefined
+
+    const scene = new THREE.Scene()
+    scene.background = new THREE.Color(isFall ? '#FFF1F2' : '#F8FAFC')
+    const camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100)
+    camera.position.set(3.2, 2.4, 4.4)
+    camera.lookAt(0, 0.8, 0)
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true })
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+    renderer.shadowMap.enabled = true
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap
+    host.appendChild(renderer.domElement)
+
+    const ambient = new THREE.HemisphereLight('#FFFFFF', '#CBD5E1', 2.4)
+    scene.add(ambient)
+    const key = new THREE.DirectionalLight('#FFFFFF', 2.8)
+    key.position.set(4, 5, 3)
+    key.castShadow = true
+    key.shadow.mapSize.set(1024, 1024)
+    scene.add(key)
+
+    const floor = new THREE.Mesh(
+      new THREE.CircleGeometry(2.55, 64),
+      new THREE.MeshStandardMaterial({ color: '#E0F2FE', roughness: 0.88 })
+    )
+    floor.rotation.x = -Math.PI / 2
+    floor.receiveShadow = true
+    scene.add(floor)
+
+    const grid = new THREE.GridHelper(5, 10, '#BFDBFE', '#E2E8F0')
+    grid.position.y = 0.006
+    scene.add(grid)
+
+    const rig = createAvatar()
+    scene.add(rig.avatar)
+    const { chair, bed } = createFurniture()
+    scene.add(chair, bed)
+
+    const presenceRing = new THREE.Mesh(
+      new THREE.TorusGeometry(0.85, 0.012, 12, 80),
+      new THREE.MeshBasicMaterial({ color: '#94A3B8', transparent: true, opacity: 0.45 })
+    )
+    presenceRing.rotation.x = Math.PI / 2
+    presenceRing.position.y = 0.04
+    scene.add(presenceRing)
+
+    const impact = new THREE.Group()
+    for (let i = 0; i < 10; i += 1) {
+      const ray = roundedBox(0.035, 0.035, 0.48, '#EF4444')
+      ray.position.set(0, 0.08, 0)
+      ray.rotation.y = (i / 10) * Math.PI * 2
+      ray.translateZ(0.38)
+      impact.add(ray)
+    }
+    impact.visible = false
+    scene.add(impact)
+
+    const clock = new THREE.Clock()
+    const target = {
+      root: new THREE.Vector3(),
+      body: new THREE.Euler(),
+      torso: new THREE.Euler(),
+      head: new THREE.Euler(),
+      leftArm: new THREE.Euler(),
+      rightArm: new THREE.Euler(),
+      leftLeg: new THREE.Euler(),
+      rightLeg: new THREE.Euler(),
+    }
+
+    function setSize() {
+      const rect = host.getBoundingClientRect()
+      const width = Math.max(280, rect.width)
+      const height = Math.max(240, rect.height)
+      renderer.setSize(width, height, false)
+      camera.aspect = width / height
+      camera.updateProjectionMatrix()
+    }
+    setSize()
+
+    const resizeObserver = new ResizeObserver(setSize)
+    resizeObserver.observe(host)
+
+    function tick() {
+      const elapsed = clock.getElapsedTime()
+      const currentState = stateRef.current
+      const pose = POSES[currentState] || POSES.standing
+
+      target.root.set(...pose.root)
+      target.body.set(...pose.body)
+      target.torso.set(...pose.torso)
+      target.head.set(...pose.head)
+      target.leftArm.set(...pose.leftArm)
+      target.rightArm.set(...pose.rightArm)
+      target.leftLeg.set(...pose.leftLeg)
+      target.rightLeg.set(...pose.rightLeg)
+
+      rig.avatar.position.lerp(target.root, 0.12)
+      rig.body.rotation.x += (target.body.x - rig.body.rotation.x) * 0.12
+      rig.body.rotation.y += (target.body.y - rig.body.rotation.y) * 0.12
+      rig.body.rotation.z += (target.body.z - rig.body.rotation.z) * 0.12
+
+      ;['torso', 'head', 'leftArm', 'rightArm', 'leftLeg', 'rightLeg'].forEach(part => {
+        rig[part].rotation.x += (target[part].x - rig[part].rotation.x) * 0.14
+        rig[part].rotation.y += (target[part].y - rig[part].rotation.y) * 0.14
+        rig[part].rotation.z += (target[part].z - rig[part].rotation.z) * 0.14
+      })
+
+      if (currentState === 'walking') {
+        const stride = Math.sin(elapsed * 7.2)
+        rig.avatar.position.x = Math.sin(elapsed * 1.5) * 0.16
+        rig.avatar.position.y += Math.abs(stride) * 0.025
+        rig.leftLeg.rotation.x += stride * 0.12
+        rig.rightLeg.rotation.x -= stride * 0.12
+        rig.leftArm.rotation.x -= stride * 0.16
+        rig.rightArm.rotation.x += stride * 0.16
+      }
+
+      if (currentState === 'standing') {
+        rig.avatar.position.y += Math.sin(elapsed * 2) * 0.018
+      }
+
+      if (currentState === 'get_up') {
+        rig.avatar.position.y += Math.sin(elapsed * 4) * 0.035
+      }
+
+      if (currentState === 'get_down') {
+        rig.avatar.position.y += Math.sin(elapsed * 10) * 0.018
+      }
+
+      if (currentState === 'no_person') {
+        rig.avatar.visible = false
+        presenceRing.visible = true
+        presenceRing.scale.setScalar(1 + Math.sin(elapsed * 2.4) * 0.08)
+        presenceRing.material.opacity = 0.32 + Math.sin(elapsed * 3) * 0.08
+      } else {
+        rig.avatar.visible = true
+        presenceRing.visible = false
+      }
+
+      chair.visible = currentState === 'sitting'
+      bed.visible = ['lying', 'get_up', 'get_down'].includes(currentState)
+      impact.visible = Boolean(fallRef.current)
+      impact.position.set(-0.9, 0.02, 0.78)
+      impact.rotation.y += 0.045
+      impact.scale.setScalar(1 + Math.sin(elapsed * 7) * 0.08)
+      scene.background.set(fallRef.current ? '#FFF1F2' : '#F8FAFC')
+      floor.material.color.set(fallRef.current ? '#FEE2E2' : '#E0F2FE')
+
+      renderer.render(scene, camera)
+      sceneRef.current.frame = requestAnimationFrame(tick)
+    }
+
+    applyPose(rig, POSES[stateRef.current] || POSES.standing)
+    sceneRef.current = { renderer, frame: requestAnimationFrame(tick) }
+
+    return () => {
+      resizeObserver.disconnect()
+      cancelAnimationFrame(sceneRef.current?.frame)
+      renderer.dispose()
+      scene.traverse(obj => {
+        if (obj.geometry) obj.geometry.dispose()
+        if (obj.material) {
+          if (Array.isArray(obj.material)) obj.material.forEach(mat => mat.dispose())
+          else obj.material.dispose()
+        }
+      })
+      host.removeChild(renderer.domElement)
+    }
+  }, [])
 
   return (
-    <div className="relative w-full h-full min-h-[240px] select-none overflow-hidden rounded-xl">
-      <svg
-        viewBox="0 0 200 230"
-        className="w-full h-full"
-        style={{ background: isFall ? 'linear-gradient(160deg, #FEF2F2 0%, #FFF5F5 100%)' : 'linear-gradient(160deg, #F8FAFF 0%, #EFF6FF 100%)' }}
-      >
-        {/* Room floor */}
-        <rect x="0" y="200" width="200" height="30" fill={isFall ? '#FECACA' : '#DBEAFE'} opacity="0.5" />
-        {/* Floor line */}
-        <line x1="0" y1="200" x2="200" y2="200" stroke={isFall ? '#FCA5A5' : '#BFDBFE'} strokeWidth="1.5" />
-
-        {/* Back wall decoration */}
-        <rect x="10" y="20" width="50" height="70" rx="3" fill="none" stroke={isFall ? '#FCA5A5' : '#BFDBFE'} strokeWidth="1" opacity="0.6" />
-        <text x="35" y="60" textAnchor="middle" fontSize="18" opacity="0.5">🖼️</text>
-
-        {/* Chair (visible for sitting) */}
-        {state === 'sitting' && (
-          <>
-            <rect x="60" y="140" width="80" height="8" rx="3" fill="#CBD5E1" />
-            <rect x="62" y="148" width="6" height="52" rx="2" fill="#94A3B8" />
-            <rect x="132" y="148" width="6" height="52" rx="2" fill="#94A3B8" />
-            <rect x="130" y="100" width="8" height="42" rx="3" fill="#CBD5E1" />
-          </>
-        )}
-
-        {/* Bed (visible for lying / get_up / get_down) */}
-        {(state === 'lying' || state === 'get_up' || state === 'get_down') && (
-          <>
-            <rect x="20" y="180" width="160" height="20" rx="4" fill="#CBD5E1" />
-            <rect x="20" y="174" width="36" height="28" rx="4" fill="#E2E8F0" />
-          </>
-        )}
-
-        {/* No-person indicator */}
-        {state === 'no_person' && (
-          <g>
-            <text x="100" y="115" textAnchor="middle" fontSize="44" opacity="0.25">🚫</text>
-            <text x="100" y="150" textAnchor="middle" fontSize="11" fill="#94A3B8" fontWeight="600">No presence detected</text>
-          </g>
-        )}
-
-        {/* Impact burst for get_down */}
-        {isFall && (
-          <g>
-            {[0,45,90,135,180,225,270,315].map((angle, i) => {
-              const rad = (angle * Math.PI) / 180
-              return (
-                <motion.line
-                  key={i}
-                  x1={70 + Math.cos(rad) * 8} y1={200 + Math.sin(rad) * 4}
-                  x2={70 + Math.cos(rad) * 18} y2={200 + Math.sin(rad) * 8}
-                  stroke="#EF4444" strokeWidth="2" strokeLinecap="round"
-                  animate={{ opacity: [0.8, 0.2, 0.8] }}
-                  transition={{ duration: 0.6, delay: i * 0.05, repeat: Infinity }}
-                />
-              )
-            })}
-          </g>
-        )}
-
-        {/* Character figure */}
-        <Figure pose={pose} color={color} isFall={isFall} />
-      </svg>
+    <div className="relative w-full h-full min-h-[260px] overflow-hidden rounded-xl bg-slate-50">
+      <div ref={hostRef} className="absolute inset-0" aria-label={`3D ${state} pose animation`} />
+      <div className="absolute left-4 top-4 rounded-full bg-white/85 px-3 py-1 text-xs font-semibold text-slate-600 shadow-sm">
+        {state.replace(/_/g, ' ')}
+      </div>
     </div>
   )
 }
