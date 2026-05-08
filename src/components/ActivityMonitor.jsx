@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react'
+﻿import { useState, useRef } from 'react'
 import { motion, AnimatePresence, useInView } from 'framer-motion'
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts'
 import { PRESET_A, PRESET_B, ACTIVITY_META } from '../data/mockData'
+import { analyzeActivityWithOpenAI, summarizeShortActivityLog } from '../lib/openaiAnalysis'
 
 const ACTIVITY_KEYS = ['no_person', 'standing', 'walking', 'sitting', 'lying', 'get_up', 'get_down']
 
@@ -16,7 +17,7 @@ function summarise(data) {
     .filter(d => d.minutes > 0)
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
+// โ”€โ”€โ”€ Component โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 export default function ActivityMonitor() {
   const [preset, setPreset]             = useState(PRESET_A)
   const [data, setData]                 = useState(PRESET_A.data)
@@ -50,24 +51,30 @@ export default function ActivityMonitor() {
     setCustomLabel('')
   }
 
-  function triggerAnalysis() {
+  async function triggerAnalysis() {
     setAnalyzing(true)
     setAnalysis(null)
-    setTimeout(() => {
-      setAnalyzing(false)
+    try {
+      const activitySummary = summarizeShortActivityLog(data)
+      const result = await analyzeActivityWithOpenAI(activitySummary)
+      setAnalysis(result)
+    } catch (error) {
+      console.warn('OpenAI behavior analysis failed, using fallback.', error)
       setAnalysis(
         preset.name === 'Restless Night'
-          ? 'Patient shows fragmented sleep with multiple get_up transitions (3×). Repeated mid-night walking and sitting events are consistent with pain-related insomnia or early-stage anxiety. Recommend a GP consultation for sleep quality assessment and fall-risk review.'
-          : 'Patient demonstrates a healthy active morning routine with adequate mobility transitions, walking bursts, and restful baseline. Activity distribution looks optimal for their age group. No intervention required at this time.'
+          ? 'The activity log shows fragmented nighttime movement with repeated get-up, walking, and sitting periods instead of a stable lying pattern. This suggests restlessness and frequent posture changes during the monitored window, so follow-up metrics should include transition frequency, walking duration, and sleep continuity over longer periods.'
+          : 'The activity log shows a mostly active monitored period with walking bursts, standing, sitting, and a clear transition from lying to upright movement. No immediate irregular activity pattern is visible from this short window, but follow-up should track transition frequency, walking duration, and sedentary bout length across a full day.'
       )
-    }, 2200)
+    } finally {
+      setAnalyzing(false)
+    }
   }
 
   return (
     <section id="activity-monitor" ref={ref} className="py-24 bg-gray-50">
       <div className="max-w-7xl mx-auto px-6">
 
-        {/* ── Header ────────────────────────────────────────── */}
+        {/* โ”€โ”€ Header โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€ */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -85,7 +92,7 @@ export default function ActivityMonitor() {
           </p>
         </motion.div>
 
-        {/* ── Controls panel ────────────────────────────────── */}
+        {/* โ”€โ”€ Controls panel โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€ */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -94,7 +101,7 @@ export default function ActivityMonitor() {
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-            {/* ── Preset Logs ─────────────────────────────────── */}
+            {/* โ”€โ”€ Preset Logs โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€ */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Preset Logs</span>
@@ -130,7 +137,7 @@ export default function ActivityMonitor() {
               </div>
             </div>
 
-            {/* ── Custom Log Builder ──────────────────────────── */}
+            {/* โ”€โ”€ Custom Log Builder โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€ */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Custom Log Builder</span>
@@ -207,10 +214,10 @@ export default function ActivityMonitor() {
           </div>
         </motion.div>
 
-        {/* ── Main content grid ─────────────────────────────── */}
+        {/* โ”€โ”€ Main content grid โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€ */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* ── Timeline + chart ────────────────────────────── */}
+          {/* โ”€โ”€ Timeline + chart โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€ */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -220,7 +227,7 @@ export default function ActivityMonitor() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="font-bold text-gray-900 text-lg">{preset.emoji} {preset.name}</div>
-                <div className="text-xs text-gray-400 mt-0.5">Starting {preset.startLabel} — 3 min intervals</div>
+                <div className="text-xs text-gray-400 mt-0.5">Starting {preset.startLabel} - 3 min intervals</div>
               </div>
               <div className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded-lg border border-gray-100">{data.length} entries</div>
             </div>
@@ -302,7 +309,7 @@ export default function ActivityMonitor() {
             </div>
           </motion.div>
 
-          {/* ── OpenAI analysis pane ─────────────────────────── */}
+          {/* โ”€โ”€ OpenAI analysis pane โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€ */}
           <motion.div
             initial={{ opacity: 0, y: 24 }}
             animate={inView ? { opacity: 1, y: 0 } : {}}
@@ -336,7 +343,7 @@ export default function ActivityMonitor() {
                           />
                         ))}
                       </div>
-                      <p className="text-sm text-gray-500">Analyzing behavior trends…</p>
+                      <p className="text-sm text-gray-500">Analyzing behavior trends...</p>
                     </motion.div>
                   ) : analysis ? (
                     <motion.p key="r" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
@@ -357,7 +364,7 @@ export default function ActivityMonitor() {
                 disabled={analyzing}
                 className="w-full bg-gray-900 hover:bg-gray-700 disabled:opacity-50 text-white text-sm font-semibold py-3 rounded-xl transition-all flex items-center justify-center gap-2"
               >
-                {analyzing ? 'Analyzing…' : (
+                {analyzing ? 'Analyzing...' : (
                   <>
                     <svg viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                       <path d="M10 2a8 8 0 100 16A8 8 0 0010 2zm.75 4.25a.75.75 0 00-1.5 0v4.5l-1.97 1.97a.75.75 0 101.06 1.06l2.25-2.25a.75.75 0 00.22-.53V6.25z"/>
@@ -377,3 +384,4 @@ export default function ActivityMonitor() {
     </section>
   )
 }
+

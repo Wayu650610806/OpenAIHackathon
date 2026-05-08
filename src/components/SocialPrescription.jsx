@@ -3,6 +3,11 @@ import { motion, AnimatePresence, useInView } from 'framer-motion'
 import { RefreshCw, Sparkles, ChevronDown, Activity } from 'lucide-react'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 import { PATIENTS, ACTIVITY_PATTERNS, ACTIVITY_META, generatePrescription } from '../data/mockData'
+import {
+  analyzeActivityWithOpenAI,
+  generateSocialPrescriptionWithOpenAI,
+  summarizePattern,
+} from '../lib/openaiAnalysis'
 
 // ─── Animated elderly character (SVG, programmatic) ──────────────────────────
 function ElderlyCharacter() {
@@ -178,13 +183,20 @@ export default function SocialPrescription() {
     setPrescription(null)
   }
 
-  function generate() {
+  async function generate() {
     setGenerating(true)
     setPrescription(null)
-    setTimeout(() => {
-      setGenerating(false)
+    try {
+      const activitySummary = summarizePattern(pattern)
+      const activityAnalysis = await analyzeActivityWithOpenAI(activitySummary)
+      const result = await generateSocialPrescriptionWithOpenAI(patient, activitySummary, activityAnalysis)
+      setPrescription(result)
+    } catch (error) {
+      console.warn('OpenAI social prescription failed, using fallback.', error)
       setPrescription(generatePrescription(patient, patternKey))
-    }, 2000)
+    } finally {
+      setGenerating(false)
+    }
   }
 
   return (
@@ -421,6 +433,12 @@ export default function SocialPrescription() {
                   <motion.div key="p" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
                     {prescription.split('\n').map((line, i) => {
                       if (!line.trim()) return <div key={i} className="h-2" />
+                      if (line.startsWith('# '))
+                        return <div key={i} className="font-black text-gray-900 text-sm mt-1 mb-2">{line.replace(/^#\s*/, '')}</div>
+                      if (line.startsWith('## '))
+                        return <div key={i} className="font-bold text-gray-800 text-xs mt-4 mb-1">{line.replace(/^##\s*/, '')}</div>
+                      if (line.startsWith('- '))
+                        return <div key={i} className="text-sm text-gray-700 leading-relaxed pl-3">• {line.replace(/^-\s*/, '')}</div>
                       if (line.startsWith('**') && line.endsWith('**'))
                         return <div key={i} className="font-bold text-gray-800 text-xs mt-3 mb-1">{line.replace(/\*\*/g, '')}</div>
                       if (line.startsWith('*') && line.endsWith('*'))

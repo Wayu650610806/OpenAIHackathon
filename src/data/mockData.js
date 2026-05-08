@@ -1,21 +1,25 @@
-// ─── 7 permitted action states ────────────────────────────────────────────────
+﻿// โ”€โ”€โ”€ 7 permitted action states โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 export const ACTIVITY_META = {
-  no_person: { label: 'No Person', color: '#94A3B8', bg: '#F8FAFC', icon: '🚫' },
-  standing:  { label: 'Standing',  color: '#F59E0B', bg: '#FFFBEB', icon: '🧍' },
-  walking:   { label: 'Walking',   color: '#10B981', bg: '#ECFDF5', icon: '🚶' },
-  sitting:   { label: 'Sitting',   color: '#8B5CF6', bg: '#F5F3FF', icon: '🪑' },
-  lying:     { label: 'Lying',     color: '#3B82F6', bg: '#EFF6FF', icon: '🛏️' },
-  get_up:    { label: 'Get Up',    color: '#F97316', bg: '#FFF7ED', icon: '⬆️' },
-  get_down:  { label: 'Get Down',  color: '#EF4444', bg: '#FEF2F2', icon: '⚠️' },
+  no_person: { label: 'No Person', color: '#94A3B8', bg: '#F8FAFC', icon: 'No' },
+  standing:  { label: 'Standing',  color: '#F59E0B', bg: '#FFFBEB', icon: 'St' },
+  walking:   { label: 'Walking',   color: '#10B981', bg: '#ECFDF5', icon: 'Wk' },
+  sitting:   { label: 'Sitting',   color: '#8B5CF6', bg: '#F5F3FF', icon: 'Sit' },
+  lying:     { label: 'Lying',     color: '#3B82F6', bg: '#EFF6FF', icon: 'Ly' },
+  get_up:    { label: 'Get Up',    color: '#F97316', bg: '#FFF7ED', icon: 'Up' },
+  get_down:  { label: 'Get Down',  color: '#EF4444', bg: '#FEF2F2', icon: 'Dn' },
 }
 
-// ─── Patients — fields from synthetic_osteoporosis_patients.csv ───────────────
+// โ”€โ”€โ”€ Patients - fields from synthetic_osteoporosis_patients.csv โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 // Displayed fields: age, sex, disease_history, mobility_status,
 //                   lifestyle_profile, favorite_foods, health_belief, cultural_context
 export const PATIENTS = [
   {
     id: 1, name: 'Somchai C.',
-    age: 70, sex: 'M',
+    age: 71, sex: 'M',
+    diagnosis: 'Osteoporosis',
+    fall_risk_level: 'moderate',
+    prior_fragility_fracture: 1,
+    history_of_falls_past_year: 1,
     disease_history: 'Osteoporosis · Osteoarthritis · Prior fragility fracture · Falls in past year',
     mobility_status: 'independent_with_caution',
     lifestyle_profile: 'Exercise: light · Smoking: never · Alcohol: regular · Fall prevention focus',
@@ -25,7 +29,11 @@ export const PATIENTS = [
   },
   {
     id: 2, name: 'Prasan T.',
-    age: 74, sex: 'M',
+    age: 75, sex: 'M',
+    diagnosis: 'Osteoporosis',
+    fall_risk_level: 'moderate',
+    prior_fragility_fracture: 0,
+    history_of_falls_past_year: 0,
     disease_history: 'Osteoporosis · Vitamin D deficiency · Chronic back pain',
     mobility_status: 'independent_with_caution',
     lifestyle_profile: 'Exercise: sedentary · Smoking: never · Alcohol: regular',
@@ -35,7 +43,11 @@ export const PATIENTS = [
   },
   {
     id: 3, name: 'Siriporn K.',
-    age: 64, sex: 'F',
+    age: 65, sex: 'F',
+    diagnosis: 'Low bone mass (Osteopenia)',
+    fall_risk_level: 'low',
+    prior_fragility_fracture: 0,
+    history_of_falls_past_year: 0,
     disease_history: 'Osteopenia · Dyslipidemia · Vitamin D deficiency · Chronic back pain',
     mobility_status: 'independent',
     lifestyle_profile: 'Exercise: light · Smoking: never · Alcohol: occasional · Fall prevention focus',
@@ -46,6 +58,10 @@ export const PATIENTS = [
   {
     id: 4, name: 'Malee P.',
     age: 87, sex: 'F',
+    diagnosis: 'Osteoporosis',
+    fall_risk_level: 'moderate',
+    prior_fragility_fracture: 1,
+    history_of_falls_past_year: 0,
     disease_history: 'Osteoporosis · Osteoarthritis · Prior fragility fracture',
     mobility_status: 'independent_with_caution',
     lifestyle_profile: 'Exercise: sedentary · Smoking: never · Alcohol: occasional',
@@ -56,6 +72,10 @@ export const PATIENTS = [
   {
     id: 5, name: 'Wichian S.',
     age: 69, sex: 'M',
+    diagnosis: 'Normal',
+    fall_risk_level: 'low',
+    prior_fragility_fracture: 0,
+    history_of_falls_past_year: 1,
     disease_history: 'Normal bone density · Falls in past year',
     mobility_status: 'independent',
     lifestyle_profile: 'Exercise: light · Smoking: never · Alcohol: occasional',
@@ -65,12 +85,12 @@ export const PATIENTS = [
   },
 ]
 
-// ─── Activity patterns — downsampled from activity_tables CSVs ────────────────
-// 48 blocks × 30 min each = 24 h. Each value is the mode action over 6×5-min rows.
+// โ”€โ”€โ”€ Activity patterns - downsampled from activity_tables CSVs โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
+// 48 blocks x 30 min each = 24 h. Each value is the mode action over 6x5-min rows.
 export const ACTIVITY_PATTERNS = {
   active_day_good_sleep: {
     name: 'Active Day · Good Sleep',
-    emoji: '☀️',
+    emoji: '',
     blocks: [
       'lying','lying','lying','lying','lying','lying','lying','lying','lying','lying','lying','lying',
       'walking','sitting','walking','walking','walking','walking','walking','no_person',
@@ -82,7 +102,7 @@ export const ACTIVITY_PATTERNS = {
   },
   insomnia_restless_night: {
     name: 'Insomnia · Restless Night',
-    emoji: '🌙',
+    emoji: '',
     blocks: [
       'lying','walking','sitting','lying','walking','sitting','lying','walking','sitting','standing','lying','lying',
       'walking','sitting','sitting','walking','sitting','walking','no_person','sitting','sitting','sitting',
@@ -93,7 +113,7 @@ export const ACTIVITY_PATTERNS = {
   },
   dementia_night_wandering: {
     name: 'Dementia · Night Wandering',
-    emoji: '🌃',
+    emoji: '',
     blocks: [
       'walking','walking','walking','sitting','walking','walking','no_person','sitting','walking','standing',
       'lying','lying','lying','walking','sitting','walking','sitting','lying','lying','lying','lying','lying',
@@ -104,7 +124,7 @@ export const ACTIVITY_PATTERNS = {
   },
   depressed_sedentary: {
     name: 'Depressed · Sedentary Day',
-    emoji: '🪑',
+    emoji: '',
     blocks: [
       'lying','lying','lying','lying','lying','lying','lying','lying','lying','lying','lying','lying','lying','lying',
       'standing','sitting','sitting','sitting','sitting','sitting','standing','sitting','sitting','sitting',
@@ -115,10 +135,10 @@ export const ACTIVITY_PATTERNS = {
   },
 }
 
-// ─── Activity monitor preset logs (3-min intervals) ───────────────────────────
+// โ”€โ”€โ”€ Activity monitor preset logs (3-min intervals) โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 export const PRESET_A = {
   name: 'Active Morning',
-  emoji: '☀️',
+  emoji: '',
   startLabel: '07:00',
   data: [
     { time: '07:00', activity: 'lying',    label: 'Deep Sleep' },
@@ -146,7 +166,7 @@ export const PRESET_A = {
 
 export const PRESET_B = {
   name: 'Restless Night',
-  emoji: '🌙',
+  emoji: '',
   startLabel: '02:00',
   data: [
     { time: '02:00', activity: 'lying',    label: 'Sleeping' },
@@ -172,56 +192,56 @@ export const PRESET_B = {
   ],
 }
 
-// ─── Social Prescription generator ────────────────────────────────────────────
+// โ”€โ”€โ”€ Social Prescription generator โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€โ”€
 export function generatePrescription(patient, patternKey) {
   const pattern = ACTIVITY_PATTERNS[patternKey]
-  const blocks  = pattern.blocks
-  const counts  = {}
+  const blocks = pattern.blocks
+  const counts = {}
   Object.keys(ACTIVITY_META).forEach(k => (counts[k] = 0))
   blocks.forEach(b => { if (counts[b] !== undefined) counts[b]++ })
 
-  const lyingHrs   = ((counts.lying   * 30) / 60).toFixed(1)
+  const lyingHrs = ((counts.lying * 30) / 60).toFixed(1)
   const sittingHrs = ((counts.sitting * 30) / 60).toFixed(1)
   const walkingHrs = ((counts.walking * 30) / 60).toFixed(1)
-  const getDowns   = counts.get_down
+  const getDowns = counts.get_down
 
-  const isRestless  = patternKey === 'insomnia_restless_night'
+  const isRestless = patternKey === 'insomnia_restless_night'
   const isWandering = patternKey === 'dementia_night_wandering'
   const isSedentary = patternKey === 'depressed_sedentary'
 
   const riskLine = patient.mobility_status === 'independent_with_caution'
-    ? `⚠️ Mobility status: **independent with caution** — recommend supervised transitions and fall prevention aids.`
-    : `✅ Mobility status: **independent** — encourage daily self-directed activity.`
+    ? 'Caution: Mobility status is **independent with caution** - recommend supervised transitions and fall prevention aids.'
+    : 'Mobility status is **independent** - encourage daily self-directed activity.'
 
   const culturalTip = patient.cultural_context.includes('Muslim')
-    ? `\n5. 🕌 **Prayer-Aligned Activity Windows** — Schedule gentle walks and stretching around Fajr and Dhuhr prayer times, using the natural rhythm as a movement cue.`
+    ? '\n5. **Prayer-Aligned Activity Windows** - Schedule gentle walks and stretching around Fajr and Dhuhr prayer times, using the natural rhythm as a movement cue.'
     : patient.cultural_context.includes('Chinese-Thai')
-    ? `\n5. 🍵 **Morning Tai Chi** — Consistent with traditional Chinese wellness practices, a 20-min tai chi session builds balance and reduces fall anxiety.`
-    : `\n5. 🛕 **Community Temple Walk** — A gentle walk to the local temple twice a week satisfies the patient's health belief and provides structured outdoor movement.`
+    ? '\n5. **Morning Tai Chi** - Consistent with traditional Chinese wellness practices, a 20-min tai chi session builds balance and reduces fall anxiety.'
+    : "\n5. **Community Temple Walk** - A gentle walk to the local temple twice a week satisfies the patient's health belief and provides structured outdoor movement."
 
-  return `**Patient:** ${patient.name} · ${patient.age}y · ${patient.sex === 'M' ? 'Male' : 'Female'}
+  return `**Patient:** ${patient.name} - ${patient.age}y - ${patient.sex === 'M' ? 'Male' : 'Female'}
 **Conditions:** ${patient.disease_history}
 **Culture:** ${patient.cultural_context}
 
 ${riskLine}
 
 **24-Hour Pattern: ${pattern.name}**
-Sleep ${lyingHrs}h · Sitting ${sittingHrs}h · Walking ${walkingHrs}h${getDowns > 0 ? ` · ⚠️ ${getDowns} fall event(s)` : ''}
+Sleep ${lyingHrs}h - Sitting ${sittingHrs}h - Walking ${walkingHrs}h${getDowns > 0 ? ` - ${getDowns} fall event(s)` : ''}
 
 **Social Prescription**
 
-1. 🌞 **Morning Sunlight Walk** — 15 min at sunrise. Sunlight supports calcium absorption — critical for ${patient.disease_history.split('·')[0].trim()}.
+1. **Morning Sunlight Walk** - 15 min at sunrise. Sunlight supports calcium absorption - critical for ${patient.disease_history.split('·')[0].trim()}.
 
-2. 🥗 **Nutrition Support** — Encourage culturally preferred foods: ${patient.favorite_foods}. Ensure adequate calcium and vitamin D alongside current medications.
+2. **Nutrition Support** - Encourage culturally preferred foods: ${patient.favorite_foods}. Ensure adequate calcium and vitamin D alongside current medications.
 
-3. ${isRestless || isWandering ? '😴 **Sleep Hygiene Program**' : isSedentary ? '🚶 **Break Sedentary Patterns**' : '🌱 **Community Group Activity**'} — ${
-    isRestless   ? 'Refer to sleep clinic. Nighttime waking pattern detected — avoid screens 1h before bed, use dim lighting.'
+3. ${isRestless || isWandering ? '**Sleep Hygiene Program**' : isSedentary ? '**Break Sedentary Patterns**' : '**Community Group Activity**'} - ${
+    isRestless ? 'Refer to sleep clinic. Nighttime waking pattern detected - avoid screens 1h before bed, use dim lighting.'
     : isWandering ? 'Safe wandering protocol: secure environment, GPS wearable, nighttime lighting. Family caregiver education recommended.'
     : isSedentary ? 'Hourly stand-and-walk reminders. Target < 8h sitting/day. Current: ' + sittingHrs + 'h.'
     : 'Join a local senior group (gardening, reading, or craft) twice weekly to reduce isolation and sustain light physical activity.'
   }
 
-4. 💊 **Medication Reminder** — ${patient.lifestyle_profile.includes('sedentary') ? 'Patient is sedentary — ensure medication adherence tracking is in place.' : 'Encourage consistent medication routine aligned with daily walk schedule.'}${culturalTip}
+4. **Medication Reminder** - ${patient.lifestyle_profile.includes('sedentary') ? 'Patient is sedentary - ensure medication adherence tracking is in place.' : 'Encourage consistent medication routine aligned with daily walk schedule.'}${culturalTip}
 
-*Generated by Mitr AI · Powered by OpenAI GPT-4o · For informational purposes only.*`
+*Generated by Mitr AI - Powered by OpenAI GPT-4o - For informational purposes only.*`
 }
