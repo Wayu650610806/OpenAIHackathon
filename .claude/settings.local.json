@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(node *)",
+      "WebSearch",
+      "WebFetch(domain:lottiefiles.com)",
+      "WebFetch(domain:iconscout.com)",
+      "WebFetch(domain:help.lottiefiles.com)",
+      "WebFetch(domain:miromiro.app)",
+      "WebFetch(domain:rive.app)",
+      "WebFetch(domain:www.moonb.io)",
+      "WebFetch(domain:lottiel.ink)"
+    ]
+  }
+}
